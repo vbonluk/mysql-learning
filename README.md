@@ -228,3 +228,202 @@ LIMIT 3 OFFSET 0 可简写成: LIMIT 0,3
 
 ### 五.实用SQL语句
 
+### 六.Mysql的管理
+
+安装(centos 7) mysql 5.7
+
+	下载mysql源安装包
+	wget http://dev.mysql.com/get/mysql57-community-release-el7-8.noarch.rpm
+	
+	安装mysql源
+	yum localinstall mysql57-community-release-el7-8.noarch.rpm
+	
+	检查mysql源是否安装成功
+	yum repolist enabled | grep "mysql.*-community.*"
+	
+	安装MySQL
+	yum install mysql-community-server
+	
+	启动MySQL服务
+	systemctl start mysqld
+	
+	查看MySQL的启动状态
+	systemctl status mysqld
+	
+	设置开机启动
+	systemctl enable mysqld
+	systemctl daemon-reload
+	
+	初始化（设置root密码）
+	Mysql 5.7(含)以前
+	
+	查看配置文件
+	cat /etc/my.cnf
+	找到打印日志路径
+	log-error=/var/log/mysqld.log
+	这一项，可以知道日志路径
+	然后使用grep命令查询密码
+	grep 'temporary password' /var/log/mysqld.log
+	得到多个结果的话，一般可能安装过多次mysql，使用最后一条即可。
+	
+	然后使用root登录mysql
+	mysql -u root -p
+	
+	修改密码，执行以下sql语句
+	ALTER USER 'root'@'localhost' IDENTIFIED BY '新的密码，大小写特殊符号都要有';
+	
+	默认root关闭远程访问(安全)，一般要新建远程的mysql用户来管理
+	
+	Mysql 5.7以后
+	可用使用
+	mysqld --initialize
+	mysqld --initialize-insecure (不生成临时密码)
+	来初始化。
+	
+数据库编码
+
+	vim /etc/my.cnf
+	
+	修改/etc/my.cnf配置文件，在[mysqld]下添加编码配置，如下所示：
+	
+	character_set_server=utf8
+	init_connect='SET NAMES utf8'
+	
+	如果需要修改端口，再加这一段
+	port=1388
+	
+	重新启动mysql服务使配置生效：
+	systemctl restart mysqld
+	
+新建/删除用户,以及权限管理
+	
+	登录root帐号后
+	查看所有用户
+	use mysql;//切换到mysql库
+	select host,user from user;//查询所有用户
+	
+	在mysql库创建用户
+	create user 用户名 identified by '密码，大小写特殊字符数字';
+	
+	删除用户
+	drop user 用户名;
+	
+	查看用户的权限
+	
+	show grants for 用户名;
+	
+	设置权限
+	grant select on 数据库名.* to 用户名;
+	
+	收回权限
+	revoke select on 数据库名.* from 用户名;
+	
+	刷新权限（使设置的权限生效）
+	flush privileges;
+	
+	权限列表：
+	ALL PRIVILEGES - 正如我们前面所看到的，这将允许MySQL用户访问指定的数据库（或者如果系统中没有选择数据库）
+	CREATE-允许他们创建新的表或数据库
+	DROP-允许他们删除表或数据库
+	DELETE-允许他们从表中删除行
+	INSERT-允许它们向表中插入行
+	SELECT-允许他们使用Select命令来读取数据库
+	UPDATE-允许他们更新表行
+	GRANT OPTION - 允许他们授予或删除其他用户的权限
+	
+登录mysql
+
+	mysql -u root -p
+	
+
+查看所有数据库
+
+	show databases;
+	
+查看数据库编码
+
+	show variables like '%char%';
+
+创建数据库
+
+	create database 数据库名;
+
+查看某个创建数据库的SQL语句
+
+	show create database 数据库名;
+	
+切换库
+
+	use 数据库名;
+	
+查看当前所在的库
+
+	select database();
+	
+删除库
+
+	drop database 数据库名;
+	
+删除表
+
+	use 数据库名;//切换到该表所在的数据库
+	drop table 表名;
+	
+遇到删表，删库等操作mysql无响应的时候，一直卡住，重新登录mysql，或者取消当前任务(ctrl + c)，然后查看数据库当前进程
+
+	show full processlist;
+	
+使用 kill + 进程id 语句来杀进程
+
+	kill 2;
+	
+数据库备份/还原
+
+	逻辑备份：
+	
+	利用mysql自带的mysqldump
+
+	备份所有数据库
+	登录mysql后执行
+	mysqldump --all-databases > 文件名.sql
+	
+	备份指定的数据库
+	mysqldump --databases db1 db2 db3 > 文件名.sql
+	
+	如果需要压缩文件，在文件名.sql后加.gz
+	
+	当我们只备份一个数据的时候可以省去 --databases 直接写成：mysqldump test > dump.sql 不过有一些细微的差别，如果不加的话，数据库转储输出不包含创建数据库和use语句，所以可以不加这个参数直接导入到其它名字的数据库里。
+	
+	物理备份：
+	停机维护，利用命令（如cp、tar、scp等）将数据库的存储文件复制到其他磁盘或者目录。防止数据不一致，需要停机维护的时候才备份。
+	
+	全量备份，增量备份：
+	待续
+	
+	数据库恢复：
+	cd 到备份文件sql目录下
+	source 文件名.sql
+	
+退出数据库
+
+	exit
+	quit
+	
+
+防火墙开放端口设置(iptable)
+	
+	参考：https://blog.csdn.net/qq_43308140/article/details/90443818
+	
+	查看防火墙配置
+	iptables -L -n
+	
+	编辑防火墙配置(开放mysql端口)
+	vi /etc/sysconfig/iptables	
+	
+	增加规则
+	-A INPUT -m state --state NEW -m tcp -p tcp --dport 1388 -j ACCEPT
+	
+	:wq保存退出vim的编辑模式后
+	重启防火墙
+	systemctl restart iptables.service
+	
