@@ -318,6 +318,9 @@ LIMIT 3 OFFSET 0 可简写成: LIMIT 0,3
 	收回权限
 	revoke select on 数据库名.* from 用户名;
 	
+	删除某个用户的某个数据库所有权限
+	revoke all on 数据库名.* from 用户名;
+	
 	刷新权限（使设置的权限生效）
 	flush privileges;
 	
@@ -333,7 +336,10 @@ LIMIT 3 OFFSET 0 可简写成: LIMIT 0,3
 	
 登录mysql
 
+	本地登录
 	mysql -u root -p
+	远程登录
+	mysql -h 你的ip -P 端口 -u root -p
 	
 
 查看所有数据库
